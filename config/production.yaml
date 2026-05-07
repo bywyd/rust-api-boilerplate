@@ -1,0 +1,38 @@
+server:
+  workers: 0 # auto
+
+database:
+  max_connections: 50
+  min_connections: 5
+
+logging:
+  level: "info"
+  format: "json"
+  file_enabled: true
+  file_path: "./logs"
+
+cache:
+  local:
+    max_capacity: 100000
+    ttl_seconds: 600
+
+cors:
+  # Override with real production origins — never leave as localhost in prod.
+  allowed_origins:
+    - "https://app.example.com"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "PATCH"
+    - "DELETE"
+    - "OPTIONS"
+  allowed_headers:
+    - "Content-Type"
+    - "Authorization"
+    - "Accept"
+    - "X-Request-Id"
+  expose_headers:
+    - "X-Request-Id"
+  max_age_seconds: 86400
+  allow_credentials: true
