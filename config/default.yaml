@@ -23,6 +23,8 @@ logging:
   format: "pretty" # "pretty" | "json"
   file_enabled: false
   file_path: "./logs"
+  file_rotation: "daily"   # "daily" | "hourly" | "never"
+  file_retention_days: 7   # delete log files older than N days (0 = keep forever)
 
 http_client:
   timeout_seconds: 30

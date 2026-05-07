@@ -53,14 +53,29 @@ pub struct RedisCacheConfig {
     pub pool_size: usize,
 }
 
+fn default_log_rotation() -> String {
+    "daily".to_string()
+}
+fn default_log_retention_days() -> u32 {
+    7
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct LoggingConfig {
     /// Tracing filter string, e.g. "debug" or "myapp=debug,tower_http=info"
     pub level: String,
     /// "pretty" for human-readable, "json" for structured output
     pub format: String,
+    /// Write logs to a file in addition to stdout.
     pub file_enabled: bool,
+    /// Directory where log files are written.
     pub file_path: String,
+    /// Log file rotation interval: `"daily"` | `"hourly"` | `"never"`.
+    #[serde(default = "default_log_rotation")]
+    pub file_rotation: String,
+    /// Delete log files older than this many days. `0` disables cleanup.
+    #[serde(default = "default_log_retention_days")]
+    pub file_retention_days: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]

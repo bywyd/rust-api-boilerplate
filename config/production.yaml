@@ -10,6 +10,8 @@ logging:
   format: "json"
   file_enabled: true
   file_path: "./logs"
+  file_rotation: "daily"
+  file_retention_days: 30  # keep 30 days of logs in production
 
 cache:
   local:

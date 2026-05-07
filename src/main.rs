@@ -11,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialise logging/tracing — hold the guard for the process lifetime
     // so the file appender flushes on shutdown.
-    let _log_guard = bootstrap::logger::init(&config.logging)?;
+    let _log_guard = bootstrap::logger::init(&config.logging, "api")?;
 
     tracing::info!(
         app_env = %std::env::var("APP_ENV").unwrap_or_else(|_| "development".into()),

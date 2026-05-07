@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config = Arc::new(AppConfig::load()?);
 
-    let _log_guard = bootstrap::logger::init(&config.logging)?;
+    let _log_guard = bootstrap::logger::init(&config.logging, "worker")?;
 
     tracing::info!(
         app_env = %std::env::var("APP_ENV").unwrap_or_else(|_| "development".into()),
