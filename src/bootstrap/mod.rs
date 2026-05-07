@@ -2,6 +2,7 @@ pub mod cache;
 pub mod database;
 pub mod logger;
 pub mod server;
+pub mod worker;
 
 use crate::app::state::AppState;
 use crate::infra::config::app_config::AppConfig;
@@ -20,6 +21,10 @@ pub async fn build_state(config: Arc<AppConfig>) -> Result<Arc<AppState>> {
     tracing::info!("Initialising HTTP client…");
     let http_client = HttpClient::new(&config.http_client)?;
 
+    tracing::info!("Initialising job queue…");
+    let queue_backend = worker::build_backend(&config.queue, db.clone());
+    let dispatcher = worker::build_dispatcher(Arc::clone(&queue_backend), &config.queue);
+
     Ok(Arc::new(AppState {
         db,
         orm,
@@ -27,5 +32,7 @@ pub async fn build_state(config: Arc<AppConfig>) -> Result<Arc<AppState>> {
         redis,
         http_client,
         config,
+        dispatcher,
+        queue_backend,
     }))
 }

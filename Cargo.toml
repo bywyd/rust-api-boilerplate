@@ -3,6 +3,14 @@ name = "rust-api-boilerplate"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "api"
+path = "src/main.rs"
+
+[[bin]]
+name = "worker"
+path = "src/bin/worker.rs"
+
 [dependencies]
 tokio = { version = "1.36", features = ["full"] }
 
@@ -68,6 +76,10 @@ dashmap = "6.1.0"
 # Redis (L2 Cache / PubSub — optional at runtime, set cache.redis.enabled = true in config)
 redis = { version = "1.0.3", features = ["tokio-comp"] }
 deadpool-redis = "0.23.0"
+
+# === Job Queue / Background Tasks ===
+async-channel = "2.2"
+tokio-util = { version = "0.7", features = ["time"] }
 
 # Async traits
 async-trait = "0.1"

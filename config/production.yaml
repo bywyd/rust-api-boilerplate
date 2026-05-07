@@ -36,3 +36,14 @@ cors:
     - "X-Request-Id"
   max_age_seconds: 86400
   allow_credentials: true
+
+worker:
+  # Always run worker as a separate process in production for independent scaling.
+  enabled: false
+  concurrency: 8
+  poll_interval_ms: 500
+
+queue:
+  backend: "database"
+  max_retries: 5
+  retry_delay_seconds: 30

@@ -3,6 +3,8 @@ use crate::infra::cache::redis::RedisPool;
 use crate::infra::config::app_config::AppConfig;
 use crate::infra::db::pool::{DbConnection, DbPool};
 use crate::infra::http_client::client::HttpClient;
+use crate::infra::queue::backend::QueueBackend;
+use crate::infra::queue::dispatcher::Dispatcher;
 use std::sync::Arc;
 
 /// Shared application state injected into every actix-web handler via `web::Data<AppState>`.
@@ -21,4 +23,8 @@ pub struct AppState {
     pub http_client: HttpClient,
     /// Loaded application configuration.
     pub config: Arc<AppConfig>,
+    /// High-level interface for dispatching background jobs.
+    pub dispatcher: Dispatcher,
+    /// Queue storage backend (channel or database).
+    pub queue_backend: Arc<dyn QueueBackend>,
 }

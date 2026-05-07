@@ -12,6 +12,10 @@ pub struct AppConfig {
     pub http_client: HttpClientConfig,
     pub auth: AuthConfig,
     pub cors: CorsConfig,
+    #[serde(default)]
+    pub worker: WorkerConfig,
+    #[serde(default)]
+    pub queue: QueueConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -88,6 +92,60 @@ pub struct CorsConfig {
     pub expose_headers: Vec<String>,
     pub max_age_seconds: usize,
     pub allow_credentials: bool,
+}
+
+fn default_worker_concurrency() -> usize {
+    4
+}
+fn default_poll_interval_ms() -> u64 {
+    1000
+}
+fn default_queue_backend() -> String {
+    "channel".to_string()
+}
+fn default_max_retries() -> u32 {
+    3
+}
+fn default_retry_delay_seconds() -> u64 {
+    60
+}
+
+/// Controls whether and how the background worker runs inside the main process.
+/// Set `enabled = true` to run the worker inline with the API server.
+/// Set `enabled = false` (default) to run the worker as a separate binary (`cargo run --bin worker`).
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct WorkerConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_worker_concurrency")]
+    pub concurrency: usize,
+    #[serde(default = "default_poll_interval_ms")]
+    pub poll_interval_ms: u64,
+}
+
+/// Configures the job queue backend and retry behaviour.
+#[derive(Debug, Clone, Deserialize)]
+pub struct QueueConfig {
+    /// `"channel"` — in-memory (dev/test, lost on restart).
+    /// `"database"` — MySQL-persisted (production, survives restarts).
+    #[serde(default = "default_queue_backend")]
+    pub backend: String,
+    /// Maximum number of attempts before a job is marked permanently failed.
+    #[serde(default = "default_max_retries")]
+    pub max_retries: u32,
+    /// Base delay in seconds for exponential backoff between retries.
+    #[serde(default = "default_retry_delay_seconds")]
+    pub retry_delay_seconds: u64,
+}
+
+impl Default for QueueConfig {
+    fn default() -> Self {
+        Self {
+            backend: default_queue_backend(),
+            max_retries: default_max_retries(),
+            retry_delay_seconds: default_retry_delay_seconds(),
+        }
+    }
 }
 
 impl AppConfig {

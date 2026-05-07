@@ -54,3 +54,17 @@ cors:
     - "X-Request-Id"
   max_age_seconds: 3600
   allow_credentials: true
+
+worker:
+  # false = run worker as a separate binary: `cargo run --bin worker`
+  # true  = run worker inline with the API server (convenient for small deployments)
+  enabled: false
+  concurrency: 4
+  poll_interval_ms: 1000
+
+queue:
+  # "channel"  — in-memory, lost on restart (good for development)
+  # "database" — MySQL-persisted, survives restarts (use in production)
+  backend: "channel"
+  max_retries: 3
+  retry_delay_seconds: 60
