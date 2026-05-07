@@ -15,6 +15,14 @@ path = "src/bin/worker.rs"
 name = "updater"
 path = "src/bin/updater.rs"
 
+[[bin]]
+name = "installer"
+path = "src/bin/installer.rs"
+
+[[bin]]
+name = "uninstaller"
+path = "src/bin/uninstaller.rs"
+
 [dependencies]
 tokio = { version = "1.36", features = ["full"] }
 
@@ -104,6 +112,9 @@ num-traits = "0.2.19"
 zip = "8.6.0"
 sha2 = "0.11"
 semver = "1.0"
+
+# === Installer ===
+dialoguer = "0.11"
 
 # === ORM ===
 sea-orm = { version = "1.1.19", features = [

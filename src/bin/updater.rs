@@ -178,12 +178,15 @@ fn wait_for_pid_exit(pid: u32, timeout_secs: u64) -> bool {
 fn pid_alive(pid: u32) -> bool {
     // `kill(pid, 0)` succeeds (returns 0) if the process exists and we have
     // permission to signal it, even when no signal is actually sent.
-    unsafe { libc_kill(pid as i32, 0) == 0 }
+    unsafe { unix_sys::kill(pid as i32, 0) == 0 }
 }
 
 #[cfg(unix)]
-extern "C" {
-    fn libc_kill(pid: i32, sig: i32) -> i32;
+mod unix_sys {
+    unsafe extern "C" {
+        pub fn kill(pid: i32, sig: i32) -> i32;
+        pub fn execv(path: *const i8, argv: *const *const i8) -> i32;
+    }
 }
 
 #[cfg(not(unix))]
@@ -309,13 +312,13 @@ fn exec_new_process(target: &Path) -> io::Error {
         let path = CString::new(target.as_os_str().as_bytes())
             .expect("target path contains null byte");
         let argv: Vec<CString> = vec![path.clone()];
-        let argv_ptrs: Vec<*const libc_char> = argv
+        let argv_ptrs: Vec<*const i8> = argv
             .iter()
             .map(|s| s.as_ptr())
             .chain(std::iter::once(std::ptr::null()))
             .collect();
 
-        unsafe { execv(path.as_ptr(), argv_ptrs.as_ptr()) };
+        unsafe { unix_sys::execv(path.as_ptr(), argv_ptrs.as_ptr()) };
         io::Error::last_os_error()
     }
 
@@ -327,11 +330,3 @@ fn exec_new_process(target: &Path) -> io::Error {
         }
     }
 }
-
-#[cfg(unix)]
-extern "C" {
-    fn execv(path: *const libc_char, argv: *const *const libc_char) -> i32;
-}
-
-#[cfg(unix)]
-type libc_char = i8;

@@ -132,7 +132,11 @@ impl UpdaterService {
         // Verify checksum before writing to disk.
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
-        let computed = format!("{:x}", hasher.finalize());
+        let computed: String = hasher
+            .finalize()
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect();
 
         if computed != manifest.checksum_sha256.to_lowercase() {
             return Err(AppError::Internal(format!(

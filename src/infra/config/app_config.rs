@@ -235,16 +235,24 @@ impl Default for UpdaterConfig {
     }
 }
 
-impl AppConfig {    /// Load configuration in priority order (lowest → highest):
-    /// 1. `config/default.yaml`
-    /// 2. `config/{APP_ENV}.yaml` (optional)
+impl AppConfig {
+    /// Load configuration in priority order (lowest → highest):
+    /// 1. `{config_dir}/default.yaml`  (`config_dir` = `APP_CONFIG_DIR` env var, default `"config"`)
+    /// 2. `{config_dir}/{APP_ENV}.yaml` (optional)
     /// 3. Environment variables (separator `__`, e.g. `DATABASE__URL`)
+    ///
+    /// `APP_CONFIG_DIR` lets installed services point at `/opt/myapp/config` regardless
+    /// of the process working directory.
     pub fn load() -> Result<Self> {
-        let env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+        let app_env = env::var("APP_ENV").unwrap_or_else(|_| "development".to_string());
+        let config_dir =
+            env::var("APP_CONFIG_DIR").unwrap_or_else(|_| "config".to_string());
 
         let config = Config::builder()
-            .add_source(File::with_name("config/default"))
-            .add_source(File::with_name(&format!("config/{}", env)).required(false))
+            .add_source(File::with_name(&format!("{}/default", config_dir)))
+            .add_source(
+                File::with_name(&format!("{}/{}", config_dir, app_env)).required(false),
+            )
             .add_source(Environment::default().separator("__"))
             .build()?;
 
