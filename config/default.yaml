@@ -70,3 +70,20 @@ queue:
   backend: "channel"
   max_retries: 3
   retry_delay_seconds: 60
+
+updater:
+  # Master switch. Set to true to enable the self-update subsystem.
+  enabled: false
+  # URL of the remote version manifest JSON.
+  # Schema: { version, release_notes, published_at, download_url, checksum_sha256, binary_name }
+  check_url: "https://example.com/releases/latest/manifest.json"
+  # true  — automatically download and apply updates when a new version is detected.
+  # false — only record the new version and expose it via GET /api/updates/status.
+  auto_update: false
+  # Background check interval in seconds. 0 = disable background checker (manual only).
+  check_interval_seconds: 3600
+  # spawn      — the updater binary execs the new process directly after replacing the binary.
+  # supervisor — the updater exits after replacing; rely on systemd/Docker to restart.
+  restart_mode: "supervisor"
+  # Overrides the compile-time CARGO_PKG_VERSION. Leave empty to use the compiled value.
+  current_version: "0.1.0"

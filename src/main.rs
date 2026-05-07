@@ -21,6 +21,10 @@ async fn main() -> anyhow::Result<()> {
 
     let state = bootstrap::build_state(Arc::clone(&config)).await?;
 
+    // Start the background update checker if the updater is enabled and
+    // check_interval_seconds > 0. This is a no-op when updater.enabled = false.
+    bootstrap::updater::start_update_checker(Arc::clone(&state));
+
     // Optionally run the background worker in the same process.
     // Set `worker.enabled = true` in config to activate.
     // For production, prefer running `cargo run --bin worker` as a separate process.

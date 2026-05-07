@@ -5,7 +5,9 @@ use crate::infra::db::pool::{DbConnection, DbPool};
 use crate::infra::http_client::client::HttpClient;
 use crate::infra::queue::backend::QueueBackend;
 use crate::infra::queue::dispatcher::Dispatcher;
+use crate::infra::updater::{UpdateStatus, UpdaterService};
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 /// Shared application state injected into every actix-web handler via `web::Data<AppState>`.
 pub struct AppState {
@@ -27,4 +29,8 @@ pub struct AppState {
     pub dispatcher: Dispatcher,
     /// Queue storage backend (channel or database).
     pub queue_backend: Arc<dyn QueueBackend>,
+    /// Cached update state. Always present; reflects whether updater is enabled.
+    pub update_status: Arc<RwLock<UpdateStatus>>,
+    /// The update service. `None` when `updater.enabled = false`.
+    pub updater_service: Option<Arc<UpdaterService>>,
 }

@@ -16,6 +16,8 @@ pub struct AppConfig {
     pub worker: WorkerConfig,
     #[serde(default)]
     pub queue: QueueConfig,
+    #[serde(default)]
+    pub updater: UpdaterConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -163,8 +165,77 @@ impl Default for QueueConfig {
     }
 }
 
-impl AppConfig {
-    /// Load configuration in priority order (lowest → highest):
+fn default_updater_check_interval() -> u64 {
+    3600
+}
+fn default_restart_mode() -> RestartMode {
+    RestartMode::Supervisor
+}
+fn default_current_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Whether the updater should spawn the new process itself or let an external
+/// supervisor (systemd, Docker, etc.) restart the service after the binary is replaced.
+#[derive(Debug, Clone, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum RestartMode {
+    Spawn,
+    #[default]
+    Supervisor,
+}
+
+/// Self-update configuration.
+///
+/// When `enabled = false` (default) the updater is completely inert — no background
+/// tasks are spawned, the HTTP endpoints return a 501, and the updater binary is
+/// never invoked.
+///
+/// `auto_update = true` means the service will download and apply a new version
+/// automatically when the background checker detects one. Set this to `false` to
+/// only receive notifications via the `/api/updates/status` endpoint and require an
+/// authorized operator to POST `/api/updates/apply`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdaterConfig {
+    /// Master switch — set to `true` to activate the updater subsystem.
+    #[serde(default)]
+    pub enabled: bool,
+    /// URL of the remote JSON manifest (see `VersionManifest` for schema).
+    #[serde(default)]
+    pub check_url: String,
+    /// Automatically apply updates when a newer version is detected.
+    /// When `false`, only logs and exposes the new version via the status API.
+    #[serde(default)]
+    pub auto_update: bool,
+    /// How often (in seconds) to poll `check_url` in the background.
+    /// Set to `0` to disable the background checker (manual check only).
+    #[serde(default = "default_updater_check_interval")]
+    pub check_interval_seconds: u64,
+    /// What to do after the updater binary replaces the executable.
+    /// `spawn`      — updater execs the new binary directly.
+    /// `supervisor` — updater exits; systemd/Docker/supervisor restarts the service.
+    #[serde(default = "default_restart_mode")]
+    pub restart_mode: RestartMode,
+    /// The running application version. Defaults to the value from `Cargo.toml` at
+    /// compile time. Override in config if you manage versioning externally.
+    #[serde(default = "default_current_version")]
+    pub current_version: String,
+}
+
+impl Default for UpdaterConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            check_url: String::new(),
+            auto_update: false,
+            check_interval_seconds: default_updater_check_interval(),
+            restart_mode: default_restart_mode(),
+            current_version: default_current_version(),
+        }
+    }
+}
+
+impl AppConfig {    /// Load configuration in priority order (lowest → highest):
     /// 1. `config/default.yaml`
     /// 2. `config/{APP_ENV}.yaml` (optional)
     /// 3. Environment variables (separator `__`, e.g. `DATABASE__URL`)

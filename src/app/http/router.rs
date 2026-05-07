@@ -16,6 +16,12 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                     .route("/{id}", web::get().to(handlers::user::get_user))
                     .route("/{id}", web::put().to(handlers::user::update_user))
                     .route("/{id}", web::delete().to(handlers::user::delete_user)),
+            )
+            .service(
+                web::scope("/updates")
+                    .route("/status", web::get().to(handlers::updater::get_update_status))
+                    .route("/check", web::get().to(handlers::updater::check_for_update))
+                    .route("/apply", web::post().to(handlers::updater::apply_update)),
             ),
     );
 }
