@@ -1,7 +1,7 @@
 use crate::infra::config::app_config::LoggingConfig;
 use anyhow::Result;
 use std::path::Path;
-use tracing_appender::rolling::{self, RollingFileAppender};
+use tracing_appender::rolling::{Rotation, RollingFileAppender};
 use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Initialise the global tracing subscriber.
@@ -37,15 +37,15 @@ pub fn init(
         if cfg.format == "json" {
             tracing_subscriber::registry()
                 .with(env_filter)
-                .with(fmt::layer().json())                           // stdout
-                .with(fmt::layer().json().with_writer(non_blocking)) // file
+                .with(fmt::layer().json())                                             // stdout
+                .with(fmt::layer().json().with_ansi(false).with_writer(non_blocking)) // file (no ANSI)
                 .try_init()
                 .map_err(|e| anyhow::anyhow!("Logger init failed: {}", e))?;
         } else {
             tracing_subscriber::registry()
                 .with(env_filter)
-                .with(fmt::layer().pretty())                   // stdout
-                .with(fmt::layer().with_writer(non_blocking))  // file (compact)
+                .with(fmt::layer().pretty())                                           // stdout
+                .with(fmt::layer().with_ansi(false).with_writer(non_blocking))        // file (no ANSI)
                 .try_init()
                 .map_err(|e| anyhow::anyhow!("Logger init failed: {}", e))?;
         }
@@ -71,11 +71,17 @@ pub fn init(
 // Rotation
 
 fn build_appender(rotation: &str, dir: &str, prefix: &str) -> RollingFileAppender {
-    match rotation {
-        "hourly" => rolling::hourly(dir, prefix),
-        "never"  => rolling::never(dir, prefix),
-        _        => rolling::daily(dir, prefix), // default: daily
-    }
+    let rot = match rotation {
+        "hourly" => Rotation::HOURLY,
+        "never"  => Rotation::NEVER,
+        _        => Rotation::DAILY,
+    };
+    RollingFileAppender::builder()
+        .rotation(rot)
+        .filename_prefix(prefix)
+        .filename_suffix("log")
+        .build(dir)
+        .expect("Failed to build log file appender")
 }
 
 // Retention / cleanup
