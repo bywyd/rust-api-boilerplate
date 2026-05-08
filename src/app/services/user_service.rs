@@ -2,7 +2,7 @@ use crate::app::auth::generate_token;
 use crate::app::error::AppError;
 use crate::infra::cache::local::LocalCache;
 use crate::infra::config::app_config::AuthConfig;
-use crate::infra::db::entities::user;
+use crate::app::entities::user;
 use crate::infra::db::pool::{DbConnection, DbPool};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
