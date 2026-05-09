@@ -87,9 +87,24 @@ impl<'a> UserService<'a> {
 
     // Queries
 
-    pub async fn find_all(&self) -> Result<Vec<UserResponse>, AppError> {
-        let users = user::Entity::find().all(self.orm).await?;
-        Ok(users.into_iter().map(UserResponse::from).collect())
+    pub async fn find_all(
+        &self,
+        pagination: &crate::app::http::pagination::PaginationParams,
+    ) -> Result<crate::app::http::pagination::PaginatedResponse<UserResponse>, AppError> {
+        use sea_orm::{PaginatorTrait, QuerySelect};
+
+        let total = user::Entity::find().count(self.orm).await?;
+
+        let users = user::Entity::find()
+            .offset(pagination.offset())
+            .limit(pagination.per_page())
+            .all(self.orm)
+            .await?;
+
+        let data = users.into_iter().map(UserResponse::from).collect();
+        Ok(crate::app::http::pagination::PaginatedResponse::new(
+            data, total, pagination,
+        ))
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<UserResponse, AppError> {

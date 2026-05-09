@@ -87,6 +87,8 @@ pub struct JobContext {
     pub redis: Option<RedisPool>,
     pub http_client: HttpClient,
     pub config: Arc<AppConfig>,
+    /// SMTP email client. `None` when `email.enabled = false`.
+    pub email: Option<Arc<crate::infra::email::client::EmailClient>>,
 }
 
 // ── Job trait ─────────────────────────────────────────────────────────────────

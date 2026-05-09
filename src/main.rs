@@ -16,7 +16,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(
         app_env = %std::env::var("APP_ENV").unwrap_or_else(|_| "development".into()),
         version = env!("CARGO_PKG_VERSION"),
-        "Starting rust-api-boilerplate"
+        "Starting {}", env!("CARGO_PKG_NAME")
     );
 
     let state = bootstrap::build_state(Arc::clone(&config)).await?;

@@ -52,6 +52,7 @@ pub async fn run(state: Arc<AppState>, shutdown: broadcast::Receiver<()>) -> Res
         redis: state.redis.clone(),
         http_client: state.http_client.clone(),
         config: Arc::clone(&state.config),
+        email: state.email.clone(),
     };
 
     let registry = build_registry();

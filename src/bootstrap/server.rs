@@ -1,3 +1,4 @@
+use crate::app::http::middleware::security_headers::SecurityHeaders;
 use crate::app::http::router;
 use crate::app::state::AppState;
 use crate::infra::config::app_config::{CorsConfig, ServerConfig};
@@ -19,6 +20,11 @@ pub async fn run(state: std::sync::Arc<AppState>, cfg: &ServerConfig) -> std::io
     // Clone config values that must be moved into the closure.
     let cors_cfg = state.config.cors.clone();
 
+    // The rate-limit registry is already wrapped in Arc; cloning just bumps the
+    // ref-count so the same underlying GovernorConfig (and its RateLimiter) is
+    // shared across all actix worker threads.
+    let rate_registry = std::sync::Arc::clone(&state.rate_limit);
+
     // `web::Data::from(Arc<T>)` avoids a double-Arc wrap.
     let state = web::Data::from(state);
 
@@ -28,8 +34,10 @@ pub async fn run(state: std::sync::Arc<AppState>, cfg: &ServerConfig) -> std::io
         App::new()
             .app_data(state.clone())
             .wrap(cors)
+            // Inject security headers on every response.
+            .wrap(SecurityHeaders)
             .wrap(middleware::Logger::default())
-            .configure(router::configure)
+            .configure(|cfg| router::configure(cfg, &rate_registry))
     })
     .workers(workers)
     .bind(&addr)?

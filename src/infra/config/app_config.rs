@@ -1,6 +1,7 @@
 use anyhow::Result;
 use config::{Config, Environment, File};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::env;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -18,6 +19,10 @@ pub struct AppConfig {
     pub queue: QueueConfig,
     #[serde(default)]
     pub updater: UpdaterConfig,
+    #[serde(default)]
+    pub rate_limit: RateLimitConfig,
+    #[serde(default)]
+    pub email: EmailConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -231,6 +236,122 @@ impl Default for UpdaterConfig {
             check_interval_seconds: default_updater_check_interval(),
             restart_mode: default_restart_mode(),
             current_version: default_current_version(),
+        }
+    }
+}
+
+// ── RateLimitConfig ───────────────────────────────────────────────────────────
+
+fn default_true() -> bool { true }
+
+fn default_rate_limit_rules() -> HashMap<String, RateLimitRuleConfig> {
+    let mut map = HashMap::new();
+    map.insert("default".to_string(), RateLimitRuleConfig { seconds_per_request: 1, burst_size: 60 });
+    map.insert("auth".to_string(), RateLimitRuleConfig { seconds_per_request: 20, burst_size: 5 });
+    map
+}
+
+/// A single named rate-limit rule: one token per `seconds_per_request` seconds,
+/// up to `burst_size` tokens in the bucket.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RateLimitRuleConfig {
+    /// Seconds between token replenishments per IP (inverse of req/s rate).
+    pub seconds_per_request: u64,
+    /// Maximum tokens that can accumulate (burst capacity).
+    pub burst_size: u32,
+}
+
+/// IP-based token-bucket rate limiting configuration (actix-governor).
+///
+/// Rules are named and applied individually to route scopes via
+/// `state.rate_limit.condition("rule-name")`. Add as many rules as needed;
+/// reference them by key in `router.rs`.
+///
+/// # Example
+/// ```yaml
+/// rate_limit:
+///   enabled: true
+///   rules:
+///     default:
+///       seconds_per_request: 1
+///       burst_size: 60
+///     auth:
+///       seconds_per_request: 20
+///       burst_size: 5
+///     strict:
+///       seconds_per_request: 60
+///       burst_size: 2
+/// ```
+#[derive(Debug, Clone, Deserialize)]
+pub struct RateLimitConfig {
+    /// Master switch. `false` makes all `condition()` calls return a no-op middleware.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// Named rule definitions. Keyed by rule name referenced in `router.rs`.
+    #[serde(default = "default_rate_limit_rules")]
+    pub rules: HashMap<String, RateLimitRuleConfig>,
+}
+
+impl Default for RateLimitConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            rules: default_rate_limit_rules(),
+        }
+    }
+}
+
+// ── EmailConfig ───────────────────────────────────────────────────────────────
+
+fn default_smtp_host() -> String { "smtp.example.com".to_string() }
+fn default_smtp_port() -> u16 { 587 }
+fn default_from_address() -> String { "noreply@example.com".to_string() }
+fn default_from_name() -> String { "App".to_string() }
+fn default_tls_mode() -> String { "starttls".to_string() }
+
+/// SMTP email delivery configuration used by [`EmailClient`].
+///
+/// Set `enabled = true` and supply SMTP credentials to activate. The
+/// `EmailJob` picks up this client from `JobContext` to send transactional email.
+#[derive(Debug, Clone, Deserialize)]
+pub struct EmailConfig {
+    /// Master switch. `false` skips building the client entirely.
+    #[serde(default)]
+    pub enabled: bool,
+    /// SMTP server hostname (e.g. `"smtp.sendgrid.net"`).
+    #[serde(default = "default_smtp_host")]
+    pub smtp_host: String,
+    /// SMTP server port. Typical: `587` (STARTTLS), `465` (TLS), `25` (plain).
+    #[serde(default = "default_smtp_port")]
+    pub smtp_port: u16,
+    /// SMTP authentication username.
+    #[serde(default)]
+    pub smtp_username: String,
+    /// SMTP authentication password / API key.
+    #[serde(default)]
+    pub smtp_password: String,
+    /// Sender email address (e.g. `"noreply@example.com"`).
+    #[serde(default = "default_from_address")]
+    pub from_address: String,
+    /// Sender display name (e.g. `"My App"`).
+    #[serde(default = "default_from_name")]
+    pub from_name: String,
+    /// TLS mode: `"starttls"` (default, port 587), `"tls"` (port 465), `"none"` (dev only).
+    #[serde(default = "default_tls_mode")]
+    pub tls_mode: String,
+}
+
+impl Default for EmailConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            smtp_host: default_smtp_host(),
+            smtp_port: default_smtp_port(),
+            smtp_username: String::new(),
+            smtp_password: String::new(),
+            from_address: default_from_address(),
+            from_name: default_from_name(),
+            tls_mode: default_tls_mode(),
         }
     }
 }

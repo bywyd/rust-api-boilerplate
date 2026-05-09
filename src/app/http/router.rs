@@ -1,16 +1,26 @@
 use crate::app::http::handlers;
+use crate::infra::rate_limit::registry::RateLimitRegistry;
 use actix_web::web;
 
-pub fn configure(cfg: &mut web::ServiceConfig) {
+/// Configure all application routes.
+///
+/// Rate limits are applied per scope using named rules from the [`RateLimitRegistry`].
+/// Add new rules in `config/default.yaml` under `rate_limit.rules`, then reference
+/// them by name with `.wrap(rate_limit.condition("rule-name"))`.
+pub fn configure(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitRegistry) {
     cfg.service(
         web::scope("/api")
             .route("/health", web::get().to(handlers::health::health_check))
             .service(
                 web::scope("/auth")
+                    // Stricter budget: limits login brute-forcing.
+                    .wrap(rate_limit.condition("auth"))
                     .route("/login", web::post().to(handlers::user::login)),
             )
             .service(
                 web::scope("/users")
+                    // General API budget.
+                    .wrap(rate_limit.condition("default"))
                     .route("", web::get().to(handlers::user::list_users))
                     .route("", web::post().to(handlers::user::create_user))
                     .route("/{id}", web::get().to(handlers::user::get_user))

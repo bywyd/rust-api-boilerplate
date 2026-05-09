@@ -8,6 +8,7 @@ pub mod worker;
 use crate::app::state::AppState;
 use crate::infra::config::app_config::AppConfig;
 use crate::infra::http_client::client::HttpClient;
+use crate::infra::rate_limit::registry::RateLimitRegistry;
 use crate::infra::updater::{UpdateStatus, UpdaterService};
 use anyhow::Result;
 use std::sync::Arc;
@@ -41,6 +42,24 @@ pub async fn build_state(config: Arc<AppConfig>) -> Result<Arc<AppState>> {
         None
     };
 
+    tracing::info!("Initialising email client…");
+    let email = if config.email.enabled {
+        tracing::info!(
+            smtp_host = %config.email.smtp_host,
+            smtp_port = config.email.smtp_port,
+            tls_mode = %config.email.tls_mode,
+            "Email client enabled"
+        );
+        let client = crate::infra::email::client::EmailClient::new(&config.email)?;
+        Some(Arc::new(client))
+    } else {
+        tracing::debug!("Email client disabled (email.enabled = false)");
+        None
+    };
+
+    tracing::info!("Initialising rate limit registry…");
+    let rate_limit = Arc::new(RateLimitRegistry::from_config(&config.rate_limit));
+
     Ok(Arc::new(AppState {
         db,
         orm,
@@ -52,5 +71,7 @@ pub async fn build_state(config: Arc<AppConfig>) -> Result<Arc<AppState>> {
         queue_backend,
         update_status,
         updater_service,
+        email,
+        rate_limit,
     }))
 }

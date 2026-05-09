@@ -31,6 +31,7 @@ actix-web = "4.5"
 actix-cors = "0.7"
 actix-multipart = "0.7.2"
 actix-files = "0.6"
+actix-governor = "0.7"
 
 # === Serialization ===
 serde = { version = "1.0", features = ["derive"] }
@@ -115,6 +116,9 @@ semver = "1.0"
 
 # === Installer ===
 dialoguer = "0.11"
+
+# === Email ===
+lettre = { version = "0.11", features = ["tokio1-native-tls"] }
 
 # === ORM ===
 sea-orm = { version = "1.1.19", features = [

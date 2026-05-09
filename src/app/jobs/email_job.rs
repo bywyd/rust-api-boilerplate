@@ -3,11 +3,16 @@ use crate::infra::queue::job::{Job, JobContext};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-/// Job that sends an email.
+/// Job that sends a transactional email via the configured SMTP client.
 ///
-/// In this boilerplate the `execute` method logs the email details.
-/// Replace the body with calls to your email provider SDK
-/// (e.g. SendGrid, Resend, AWS SES).
+/// Dispatch via `state.dispatcher`:
+/// ```rust,ignore
+/// state.dispatcher.dispatch(
+///     &EmailJob::new("user@example.com", "Welcome!", "Hello!")
+/// ).await?;
+/// ```
+///
+/// Requires `email.enabled = true` in config and valid SMTP credentials.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailJob {
     /// Identifies this struct to the [`JobRegistry`]. Must match `job_type()`.
@@ -46,18 +51,26 @@ impl Job for EmailJob {
         "email"
     }
 
-    async fn execute(&self, _ctx: &JobContext) -> Result<(), QueueError> {
+    async fn execute(&self, ctx: &JobContext) -> Result<(), QueueError> {
+        let client = ctx.email.as_ref().ok_or_else(|| {
+            QueueError::Execution(
+                "Email client is not configured — set email.enabled = true in config".to_string(),
+            )
+        })?;
+
+        client
+            .send(&self.to, &self.subject, &self.body, self.html.as_deref())
+            .await
+            .map_err(|e| QueueError::Execution(format!("Email send failed: {e}")))?;
+
         tracing::info!(
             to = %self.to,
             subject = %self.subject,
             has_html = self.html.is_some(),
-            "Sending email (placeholder — wire your email provider here)"
+            "Email sent successfully"
         );
-
-        // TODO: integrate a real email provider, e.g.
-        // let client = resend::Client::new(&_ctx.config.email.api_key);
-        // client.send(...).await?;
 
         Ok(())
     }
 }
+

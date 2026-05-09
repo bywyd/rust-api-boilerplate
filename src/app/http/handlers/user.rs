@@ -5,10 +5,13 @@ use crate::app::state::AppState;
 use actix_web::{web, HttpResponse};
 use uuid::Uuid;
 
-pub async fn list_users(state: web::Data<AppState>) -> Result<HttpResponse, AppError> {
+pub async fn list_users(
+    state: web::Data<AppState>,
+    query: web::Query<crate::app::http::pagination::PaginationParams>,
+) -> Result<HttpResponse, AppError> {
     let service = UserService::new(&state.db, &state.orm, &state.cache);
-    let users = service.find_all().await?;
-    Ok(HttpResponse::Ok().json(users))
+    let result = service.find_all(&query.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(result))
 }
 
 pub async fn get_user(

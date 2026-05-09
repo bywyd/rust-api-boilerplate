@@ -87,3 +87,28 @@ updater:
   restart_mode: "supervisor"
   # Overrides the compile-time CARGO_PKG_VERSION. Leave empty to use the compiled value.
   current_version: "0.1.0"
+
+rate_limit:
+  enabled: true
+  # Named rules — reference these by key in router.rs via state.rate_limit.condition("rule-name").
+  # Add as many rules as your API needs; they are built once at startup and shared across workers.
+  rules:
+    # General API routes: sustain 1 req/s, allow short bursts up to 60.
+    default:
+      seconds_per_request: 1
+      burst_size: 60
+    # Login / auth routes: max 1 req per 20 s with a small burst (brute-force protection).
+    auth:
+      seconds_per_request: 20
+      burst_size: 5
+
+email:
+  enabled: false
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_username: ""
+  smtp_password: ""
+  from_address: "noreply@example.com"
+  from_name: "App"
+  # TLS mode: "starttls" (port 587), "tls" (port 465), "none" (dev only)
+  tls_mode: "starttls"

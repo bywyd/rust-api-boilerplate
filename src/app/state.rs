@@ -2,9 +2,11 @@ use crate::infra::cache::local::LocalCache;
 use crate::infra::cache::redis::RedisPool;
 use crate::infra::config::app_config::AppConfig;
 use crate::infra::db::pool::{DbConnection, DbPool};
+use crate::infra::email::client::EmailClient;
 use crate::infra::http_client::client::HttpClient;
 use crate::infra::queue::backend::QueueBackend;
 use crate::infra::queue::dispatcher::Dispatcher;
+use crate::infra::rate_limit::registry::RateLimitRegistry;
 use crate::infra::updater::{UpdateStatus, UpdaterService};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -33,4 +35,8 @@ pub struct AppState {
     pub update_status: Arc<RwLock<UpdateStatus>>,
     /// The update service. `None` when `updater.enabled = false`.
     pub updater_service: Option<Arc<UpdaterService>>,
+    /// SMTP email client. `None` when `email.enabled = false`.
+    pub email: Option<Arc<EmailClient>>,
+    /// Named rate-limit rules. Shared across all actix workers.
+    pub rate_limit: Arc<RateLimitRegistry>,
 }
