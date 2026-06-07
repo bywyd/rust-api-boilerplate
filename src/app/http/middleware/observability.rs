@@ -86,7 +86,7 @@ where
 
         let state = req.app_data::<web::Data<AppState>>().cloned();
 
-        if let Some(state) = state {
+        if let Some(ref state) = state {
             if !state.config.logging.http_request_logging.enabled {
                 return Box::pin(async move {
                     let res = service.call(req).await?;
@@ -94,7 +94,7 @@ where
                 });
             }
         }
-
+        
         let content_type = req
             .headers()
             .get(actix_web::http::header::CONTENT_TYPE)
