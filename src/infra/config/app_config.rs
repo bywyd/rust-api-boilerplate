@@ -83,6 +83,18 @@ pub struct LoggingConfig {
     /// Delete log files older than this many days. `0` disables cleanup.
     #[serde(default = "default_log_retention_days")]
     pub file_retention_days: u32,
+    
+    pub http_request_logging: HttpRequestLoggingConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct HttpRequestLoggingConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub log_request_body: bool,
+    #[serde(default = "default_true")]
+    pub log_response_body: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

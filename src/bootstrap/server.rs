@@ -1,4 +1,5 @@
 use crate::app::http::middleware::security_headers::SecurityHeaders;
+use crate::app::http::middleware::observability::ObservabilityLogger;
 use crate::app::http::router;
 use crate::app::state::AppState;
 use crate::infra::config::app_config::{CorsConfig, ServerConfig};
@@ -36,6 +37,7 @@ pub async fn run(state: std::sync::Arc<AppState>, cfg: &ServerConfig) -> std::io
             .wrap(cors)
             // Inject security headers on every response.
             .wrap(SecurityHeaders)
+            .wrap(ObservabilityLogger)
             .wrap(middleware::Logger::default())
             .configure(|cfg| router::configure(cfg, &rate_registry))
     })

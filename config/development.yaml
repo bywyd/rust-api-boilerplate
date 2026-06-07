@@ -1,6 +1,10 @@
 logging:
   level: "debug"
   format: "pretty"
+  http_request_logging:
+    enabled: false
+    log_request_body: false
+    log_response_body: false
 
 database:
   max_connections: 5

@@ -28,6 +28,13 @@ pub fn configure(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitRegistry) {
                     .route("/{id}", web::delete().to(handlers::user::delete_user)),
             )
             .service(
+                web::scope("/observability")
+                    .route("/logs", web::get().to(handlers::observability::list_logs))
+                    .route("/logs", web::delete().to(handlers::observability::truncate_logs))
+                    .route("/logs/{id}", web::get().to(handlers::observability::get_log)),
+                    
+            )
+            .service(
                 web::scope("/updates")
                     .route("/status", web::get().to(handlers::updater::get_update_status))
                     .route("/check", web::get().to(handlers::updater::check_for_update))
