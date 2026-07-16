@@ -94,6 +94,9 @@ deadpool-redis = "0.23.0"
 async-channel = "2.2"
 tokio-util = { version = "0.7", features = ["time"] }
 
+# === Cron Scheduling ===
+cron = "0.15"
+
 # Async traits
 async-trait = "0.1"
 

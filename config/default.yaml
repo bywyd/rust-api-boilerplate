@@ -75,6 +75,13 @@ queue:
   max_retries: 3
   retry_delay_seconds: 60
 
+scheduler:
+  # Run the cron scheduler in-process. It dispatches jobs onto the queue on a
+  # schedule; a worker (inline or standalone) still executes them.
+  # In multi-instance deployments, enable this on exactly ONE instance to avoid
+  # firing each schedule multiple times. Define schedules in src/app/jobs/schedule.rs.
+  enabled: false
+
 updater:
   # Master switch. Set to true to enable the self-update subsystem.
   enabled: false

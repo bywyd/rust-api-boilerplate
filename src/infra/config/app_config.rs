@@ -23,6 +23,8 @@ pub struct AppConfig {
     pub rate_limit: RateLimitConfig,
     #[serde(default)]
     pub email: EmailConfig,
+    #[serde(default)]
+    pub scheduler: SchedulerConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -250,6 +252,21 @@ impl Default for UpdaterConfig {
             current_version: default_current_version(),
         }
     }
+}
+
+// ── SchedulerConfig ───────────────────────────────────────────────────────────
+
+/// Controls the cron scheduler that dispatches jobs onto the queue on a schedule.
+///
+/// Set `enabled = true` to run the scheduler inside this process. The scheduler
+/// only *enqueues* jobs — a worker (inline or standalone) still executes them.
+///
+/// In multi-instance deployments run the scheduler on exactly **one** instance
+/// to avoid firing each schedule multiple times.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct SchedulerConfig {
+    #[serde(default)]
+    pub enabled: bool,
 }
 
 // ── RateLimitConfig ───────────────────────────────────────────────────────────

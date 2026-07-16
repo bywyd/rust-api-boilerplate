@@ -51,18 +51,32 @@ impl Dispatcher {
         self.backend.enqueue(envelope).await
     }
 
+    /// Enqueue an already-serialised payload.
+    ///
+    /// Used by the cron scheduler, which stores type-erased payload factories.
+    /// The value must be a JSON object containing a `"type"` field.
+    pub async fn dispatch_value(&self, value: serde_json::Value) -> Result<(), QueueError> {
+        let job_type = Self::extract_type(&value)?;
+        let envelope = JobEnvelope::new(job_type, value, self.default_max_attempts);
+        self.backend.enqueue(envelope).await
+    }
+
     fn prepare<J: Serialize>(payload: &J) -> Result<(String, serde_json::Value), QueueError> {
         let value = serde_json::to_value(payload)?;
-        // Expect jobs to serialise as objects containing a `"type"` field.
-        let job_type = value
+        let job_type = Self::extract_type(&value)?;
+        Ok((job_type, value))
+    }
+
+    /// Pull the `"type"` discriminator out of a serialised job payload.
+    fn extract_type(value: &serde_json::Value) -> Result<String, QueueError> {
+        value
             .get("type")
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
                 QueueError::Execution(
                     "Job payload must contain a string field named \"type\"".to_string(),
                 )
-            })?
-            .to_string();
-        Ok((job_type, value))
+            })
+            .map(|s| s.to_string())
     }
 }

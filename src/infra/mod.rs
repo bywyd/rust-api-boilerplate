@@ -5,4 +5,5 @@ pub mod email;
 pub mod http_client;
 pub mod queue;
 pub mod rate_limit;
+pub mod scheduler;
 pub mod updater;

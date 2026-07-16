@@ -1,6 +1,7 @@
 pub mod cache;
 pub mod database;
 pub mod logger;
+pub mod scheduler;
 pub mod server;
 pub mod updater;
 pub mod worker;
