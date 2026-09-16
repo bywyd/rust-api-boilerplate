@@ -26,6 +26,10 @@ pub async fn run(state: std::sync::Arc<AppState>, cfg: &ServerConfig) -> std::io
     // shared across all actix worker threads.
     let rate_registry = std::sync::Arc::clone(&state.rate_limit);
 
+    // Routes are configured per worker, so the websocket settings must be cloned
+    // out of the state before it is moved into the factory closure.
+    let ws_cfg = state.config.websocket.clone();
+
     // `web::Data::from(Arc<T>)` avoids a double-Arc wrap.
     let state = web::Data::from(state);
 
@@ -39,7 +43,7 @@ pub async fn run(state: std::sync::Arc<AppState>, cfg: &ServerConfig) -> std::io
             .wrap(SecurityHeaders)
             .wrap(ObservabilityLogger)
             .wrap(middleware::Logger::default())
-            .configure(|cfg| router::configure(cfg, &rate_registry))
+            .configure(|cfg| router::configure(cfg, &rate_registry, &ws_cfg))
     })
     .workers(workers)
     .bind(&addr)?

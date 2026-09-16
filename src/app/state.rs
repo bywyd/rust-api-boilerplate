@@ -8,6 +8,8 @@ use crate::infra::queue::backend::QueueBackend;
 use crate::infra::queue::dispatcher::Dispatcher;
 use crate::infra::rate_limit::registry::RateLimitRegistry;
 use crate::infra::updater::{UpdateStatus, UpdaterService};
+use crate::infra::ws::policy::WsPolicy;
+use crate::infra::ws::WsHub;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -39,4 +41,9 @@ pub struct AppState {
     pub email: Option<Arc<EmailClient>>,
     /// Named rate-limit rules. Shared across all actix workers.
     pub rate_limit: Arc<RateLimitRegistry>,
+    /// WebSocket connection hub. Publish to connected clients from anywhere:
+    /// `state.ws.publish("topic", &payload)?`.
+    pub ws: Arc<WsHub>,
+    /// Authorisation rules applied to websocket subscriptions and publishes.
+    pub ws_policy: Arc<dyn WsPolicy>,
 }

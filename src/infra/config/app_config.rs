@@ -25,6 +25,8 @@ pub struct AppConfig {
     pub email: EmailConfig,
     #[serde(default)]
     pub scheduler: SchedulerConfig,
+    #[serde(default)]
+    pub websocket: WebSocketConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -381,6 +383,143 @@ impl Default for EmailConfig {
             from_address: default_from_address(),
             from_name: default_from_name(),
             tls_mode: default_tls_mode(),
+        }
+    }
+}
+
+// ── WebSocketConfig ───────────────────────────────────────────────────────────
+
+fn default_ws_heartbeat_interval() -> u64 {
+    20
+}
+fn default_ws_client_timeout() -> u64 {
+    60
+}
+fn default_ws_send_buffer() -> usize {
+    64
+}
+fn default_ws_max_frame_size() -> usize {
+    64 * 1024
+}
+fn default_ws_max_message_size() -> usize {
+    256 * 1024
+}
+fn default_ws_max_connections() -> usize {
+    10_000
+}
+fn default_ws_max_topics() -> usize {
+    32
+}
+fn default_ws_cluster_channel() -> String {
+    "ws:events".to_string()
+}
+
+/// Real-time WebSocket endpoint configuration.
+///
+/// The endpoint is served at `GET /api/ws` (see `router.rs`) and is backed by
+/// the [`WsHub`](crate::infra::ws::WsHub) held in `AppState`. Publishing to
+/// connected clients from anywhere in the app is a one-liner:
+///
+/// ```rust,ignore
+/// state.ws.publish("users", &json!({ "event": "user.created", "id": user.id }))?;
+/// state.ws.publish_to_user(user_id, "notifications", &payload)?;
+/// state.ws.broadcast("system", &json!({ "event": "maintenance" }))?;
+/// ```
+///
+/// Which topics a client may subscribe to is decided by
+/// [`AppWsPolicy`](crate::app::ws::policy::AppWsPolicy) — edit that file rather
+/// than this config to change authorisation rules.
+#[derive(Debug, Clone, Deserialize)]
+pub struct WebSocketConfig {
+    /// Master switch. `false` skips route registration entirely — the endpoint 404s.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// Reject connections that do not present a valid JWT.
+    ///
+    /// When `false`, anonymous clients may connect and the policy still sees
+    /// `user_id: None`, so per-user topics stay protected.
+    #[serde(default)]
+    pub require_auth: bool,
+    /// Accept `?token=<jwt>` in the query string in addition to the
+    /// `Authorization: Bearer` header.
+    ///
+    /// Browsers cannot set headers on a WebSocket handshake, so this is usually
+    /// required for web clients. Note that query strings are commonly recorded
+    /// by proxies and access logs — prefer short-lived tokens.
+    #[serde(default = "default_true")]
+    pub allow_query_token: bool,
+    /// How often the server sends a ping frame to each client.
+    #[serde(default = "default_ws_heartbeat_interval")]
+    pub heartbeat_interval_seconds: u64,
+    /// Drop a connection after this many seconds without any frame from the client.
+    /// Must be comfortably larger than `heartbeat_interval_seconds`.
+    #[serde(default = "default_ws_client_timeout")]
+    pub client_timeout_seconds: u64,
+    /// Per-connection outbound queue depth. A client that cannot keep up and
+    /// fills this buffer is disconnected rather than being allowed to stall
+    /// the broadcaster.
+    #[serde(default = "default_ws_send_buffer")]
+    pub send_buffer: usize,
+    /// Maximum size of a single inbound WebSocket frame, in bytes.
+    #[serde(default = "default_ws_max_frame_size")]
+    pub max_frame_size_bytes: usize,
+    /// Maximum size of a fully reassembled inbound message (continuation frames
+    /// summed together), in bytes.
+    #[serde(default = "default_ws_max_message_size")]
+    pub max_message_size_bytes: usize,
+    /// Refuse new handshakes once this many connections are live on this node.
+    #[serde(default = "default_ws_max_connections")]
+    pub max_connections: usize,
+    /// Maximum topics a single connection may subscribe to.
+    #[serde(default = "default_ws_max_topics")]
+    pub max_topics_per_connection: usize,
+    /// Cross-instance fan-out over Redis pub/sub.
+    #[serde(default)]
+    pub cluster: WebSocketClusterConfig,
+}
+
+impl Default for WebSocketConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            require_auth: false,
+            allow_query_token: true,
+            heartbeat_interval_seconds: default_ws_heartbeat_interval(),
+            client_timeout_seconds: default_ws_client_timeout(),
+            send_buffer: default_ws_send_buffer(),
+            max_frame_size_bytes: default_ws_max_frame_size(),
+            max_message_size_bytes: default_ws_max_message_size(),
+            max_connections: default_ws_max_connections(),
+            max_topics_per_connection: default_ws_max_topics(),
+            cluster: WebSocketClusterConfig::default(),
+        }
+    }
+}
+
+/// Redis pub/sub bridge that mirrors published events to every other instance.
+///
+/// A [`WsHub`](crate::infra::ws::WsHub) only knows about sockets attached to its
+/// own process. Behind a load balancer, clients of the same topic land on
+/// different instances, so `publish()` on one node must reach the others.
+/// Enabling this relays every published event through a Redis channel; each node
+/// tags its frames with a node id and ignores its own echo.
+///
+/// Requires `cache.redis.enabled = true` — the bridge reuses `cache.redis.url`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct WebSocketClusterConfig {
+    /// Master switch for the cross-instance bridge.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Redis pub/sub channel used to relay events between instances.
+    #[serde(default = "default_ws_cluster_channel")]
+    pub channel: String,
+}
+
+impl Default for WebSocketClusterConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            channel: default_ws_cluster_channel(),
         }
     }
 }

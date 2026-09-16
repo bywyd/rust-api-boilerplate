@@ -23,12 +23,26 @@ pub async fn get_user(
     Ok(HttpResponse::Ok().json(user))
 }
 
+/// Also publishes a `user.created` event to the `users` websocket topic —
+/// an example of pushing a real-time update from an ordinary handler.
+///
+/// `publish` is synchronous and non-blocking, so it costs the request nothing.
+/// A failure to encode or fan out must not fail a user creation that already
+/// committed, so the result is logged rather than propagated.
 pub async fn create_user(
     state: web::Data<AppState>,
     body: web::Json<CreateUserDto>,
 ) -> Result<HttpResponse, AppError> {
     let service = UserService::new(&state.db, &state.orm, &state.cache);
     let user = service.create(body.into_inner()).await?;
+
+    if let Err(e) = state.ws.publish(
+        "users",
+        &serde_json::json!({ "event": "user.created", "user": &user }),
+    ) {
+        tracing::warn!(error = %e, "Failed to publish user.created event");
+    }
+
     Ok(HttpResponse::Created().json(user))
 }
 

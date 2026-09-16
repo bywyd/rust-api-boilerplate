@@ -7,3 +7,4 @@ pub mod queue;
 pub mod rate_limit;
 pub mod scheduler;
 pub mod updater;
+pub mod ws;

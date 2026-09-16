@@ -5,6 +5,7 @@ pub mod scheduler;
 pub mod server;
 pub mod updater;
 pub mod worker;
+pub mod ws;
 
 use crate::app::state::AppState;
 use crate::infra::config::app_config::AppConfig;
@@ -61,6 +62,10 @@ pub async fn build_state(config: Arc<AppConfig>) -> Result<Arc<AppState>> {
     tracing::info!("Initialising rate limit registry…");
     let rate_limit = Arc::new(RateLimitRegistry::from_config(&config.rate_limit));
 
+    tracing::info!("Initialising websocket hub…");
+    let ws = ws::init(&config, redis.as_ref());
+    let ws_policy = ws::build_policy(&config);
+
     Ok(Arc::new(AppState {
         db,
         orm,
@@ -74,5 +79,7 @@ pub async fn build_state(config: Arc<AppConfig>) -> Result<Arc<AppState>> {
         updater_service,
         email,
         rate_limit,
+        ws,
+        ws_policy,
     }))
 }

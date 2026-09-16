@@ -32,6 +32,11 @@ actix-cors = "0.7"
 actix-multipart = "0.7.2"
 actix-files = "0.6"
 actix-governor = "0.7"
+# WebSockets for actix-web 4 (actor-free API)
+actix-ws = "0.4"
+# Cheap-to-clone UTF-8 string backed by `Bytes` — one encoded frame fans out
+# to thousands of sockets without re-allocating per recipient.
+bytestring = "1.5"
 
 # === Serialization ===
 serde = { version = "1.0", features = ["derive"] }
@@ -82,11 +87,11 @@ chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0.18"
 anyhow = "1.0"
 
-# Cache (L1 — in-process)
+# Cache (L1 â in-process)
 moka = { version = "0.12", features = ["future"] }
 dashmap = "6.1.0"
 
-# Redis (L2 Cache / PubSub — optional at runtime, set cache.redis.enabled = true in config)
+# Redis (L2 Cache / PubSub â optional at runtime, set cache.redis.enabled = true in config)
 redis = { version = "1.0.3", features = ["tokio-comp"] }
 deadpool-redis = "0.23.0"
 

@@ -123,3 +123,36 @@ email:
   from_name: "App"
   # TLS mode: "starttls" (port 587), "tls" (port 465), "none" (dev only)
   tls_mode: "starttls"
+
+websocket:
+  # Master switch. false = the /api/ws route is not registered at all.
+  enabled: true
+  # true  = reject the handshake unless a valid JWT is supplied.
+  # false = allow anonymous connections; the policy still sees user_id = null,
+  #         so per-user topics remain protected.
+  require_auth: false
+  # Browsers cannot set an Authorization header on a WebSocket handshake, so web
+  # clients pass ?token=<jwt>. Query strings often end up in proxy/access logs —
+  # prefer short-lived tokens, or set this to false for non-browser clients.
+  allow_query_token: true
+  # Server ping interval, and how long a client may go silent before being cut.
+  # Keep client_timeout comfortably larger than the heartbeat interval.
+  heartbeat_interval_seconds: 20
+  client_timeout_seconds: 60
+  # Per-connection outbound queue. A client that fills this buffer is dropped
+  # rather than being allowed to stall broadcasts to everyone else.
+  send_buffer: 64
+  # Inbound size limits (single frame, and a fully reassembled message).
+  max_frame_size_bytes: 65536
+  max_message_size_bytes: 262144
+  # Refuse new handshakes past this many live connections on this instance.
+  max_connections: 10000
+  # Maximum topics one connection may subscribe to.
+  max_topics_per_connection: 32
+  cluster:
+    # Mirror published events to other instances over Redis pub/sub.
+    # Required when running more than one instance behind a load balancer —
+    # a hub only knows the sockets attached to its own process.
+    # Requires cache.redis.enabled = true (reuses cache.redis.url).
+    enabled: false
+    channel: "ws:events"
